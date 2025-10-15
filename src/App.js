@@ -47,12 +47,10 @@ class App extends React.Component {
   async fetchWeather() {
     try {
       this.setState({ isLoading: true });
-      // 1) Getting location (geocoding)
       const geoRes = await fetch(
         `https://geocoding-api.open-meteo.com/v1/search?name=${this.state.location}`
       );
       const geoData = await geoRes.json();
-      console.log(geoData);
 
       if (!geoData.results) throw new Error("Location not found");
 
@@ -62,7 +60,6 @@ class App extends React.Component {
         displayLocation: `${name} ${convertToFlag(country_code)}`,
       });
 
-      // 2) Getting actual weather
       const weatherRes = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`
       );
@@ -89,9 +86,58 @@ class App extends React.Component {
         </div>
         <button onClick={this.fetchWeather}>Get weather</button>
         {this.state.isLoading && <p className="Loader">Loading...</p>}
+        {this.state.weather.weathercode && (
+          <Weather
+            weather={this.state.weather}
+            location={this.state.displayLocation}
+          />
+        )}
       </div>
     );
   }
 }
 
 export default App;
+
+class Weather extends React.Component {
+  render() {
+    const {
+      temperature_2m_max: max,
+      temperature_2m_min: min,
+      time: dates,
+      weathercode: codes,
+    } = this.props.weather;
+
+    return (
+      <div>
+        <h2>Weather in {this.props.location}</h2>
+        <ul className="weather">
+          {dates.map((date, i) => (
+            <Day
+              key={date}
+              date={date}
+              max={max[i]}
+              min={min[i]}
+              code={codes[i]}
+            />
+          ))}
+        </ul>
+      </div>
+    );
+  }
+}
+
+class Day extends React.Component {
+  render() {
+    const { date, max, min, code } = this.props;
+    return (
+      <li className="day">
+        <span>{formatDay(date)}</span> {getWeatherIcon(code)}
+        <strong>
+          {" "}
+          {Math.round(min)}° / {Math.round(max)}°
+        </strong>
+      </li>
+    );
+  }
+}
